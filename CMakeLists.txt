@@ -64,6 +64,12 @@ option(TRITON_ENABLE_AZURE_STORAGE "Include Azure Storage Filesystem support in 
 # Need to know if TensorRT is available when building unit tests
 option(TRITON_ENABLE_TENSORRT "Include TensorRT backend in server" OFF)
 
+#
+# Address Sanitizer
+#
+add_compile_options(-O1 -g -fsanitize=thread -fno-omit-frame-pointer)
+add_link_options(-fsanitize=thread)
+
 # ASAN
 option(TRITON_ENABLE_ASAN "Build with address sanitizer" OFF)
 
