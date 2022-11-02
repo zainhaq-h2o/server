@@ -67,8 +67,8 @@ option(TRITON_ENABLE_TENSORRT "Include TensorRT backend in server" OFF)
 #
 # Address Sanitizer
 #
-add_compile_options(-O1 -g -fsanitize=thread -fno-omit-frame-pointer)
-add_link_options(-fsanitize=thread)
+# add_compile_options(-O1 -g -fsanitize=thread -fno-omit-frame-pointer)
+# add_link_options(-fsanitize=thread)
 
 # ASAN
 option(TRITON_ENABLE_ASAN "Build with address sanitizer" OFF)
