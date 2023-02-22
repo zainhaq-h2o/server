@@ -1003,6 +1003,203 @@ ENV NVIDIA_TRITON_SERVER_VERSION ${TRITON_CONTAINER_VERSION}
         dfile.write(df)
 
 
+def create_dockerfile_jetson(ddir, dockerfile_name, argmap, backends):
+    df = '''
+ARG TRITON_VERSION={}
+ARG TRITON_CONTAINER_VERSION={}
+ARG BASE_IMAGE={}
+
+'''.format(argmap['TRITON_VERSION'], argmap['TRITON_CONTAINER_VERSION'],
+           argmap['BASE_IMAGE'])
+
+    df += '''
+############################################################################
+##  Production stage: Create container with just inference server executable
+############################################################################
+FROM ${BASE_IMAGE}
+'''
+
+    df += dockerfile_prepare_container_jetson(argmap, backends,
+                                             target_machine())
+
+    df += '''
+WORKDIR /opt
+COPY --chown=1000:1000 build/install tritonserver
+
+WORKDIR /opt/tritonserver
+COPY --chown=1000:1000 NVIDIA_Deep_Learning_Container_License.pdf .
+
+'''
+
+    with open(os.path.join(ddir, dockerfile_name), "w") as dfile:
+        dfile.write(df)
+
+
+def dockerfile_prepare_container_jetson(argmap, backends,
+                                       target_machine):
+    # Common steps to produce docker images shared by build.py and compose.py.
+    # Sets enviroment variables, installs dependencies and adds entrypoint
+    df = '''
+ARG TRITON_VERSION
+ARG TRITON_CONTAINER_VERSION
+
+ENV TRITON_SERVER_VERSION ${TRITON_VERSION}
+ENV NVIDIA_TRITON_SERVER_VERSION ${TRITON_CONTAINER_VERSION}
+LABEL com.nvidia.tritonserver.version="${TRITON_SERVER_VERSION}"
+
+ENV PATH /opt/tritonserver/bin:${PATH}
+
+#
+# Cmake upgrade to 3.21.0 (apt installs version 3.10.2) - ORT 1.8.1 needs 3.21.0
+#
+RUN apt remove -y cmake
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
+      gpg --dearmor - | \
+      tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
+    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
+    apt-get update && \
+      apt-get install -y --no-install-recommends \
+        cmake-data=3.21.1-0kitware1ubuntu20.04.1 cmake=3.21.1-0kitware1ubuntu20.04.1; \
+    cmake --version
+'''
+    # TODO Remove env variables if not needed?
+    # TODO Remove once the ORT-OpenVINO "Exception while Reading network" is fixed
+    if 'onnxruntime' in backends:
+        df += '''
+ENV LD_LIBRARY_PATH /opt/tritonserver/backends/onnxruntime:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
+'''
+
+    backend_dependencies = ""
+    backend_pip_dependencies = ""
+
+    # dependencies needed by PyTorch
+    if 'pytorch' in backends:
+        backend_dependencies += " \
+            autoconf \
+            bc \
+            g++-8 \
+            gcc-8 \
+            clang-8 \
+            lld-8 \
+            gettext-base \
+            gfortran-8 \
+            iputils-ping \
+            libbz2-dev \
+            libc++-dev \
+            libcgal-dev \
+            libffi-dev \
+            libfreetype6-dev \
+            libhdf5-dev \
+            libjpeg-dev \
+            liblzma-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libpng-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            libxml2-dev \
+            libxslt-dev \
+            locales \
+            moreutils \
+            openssl \
+            rsync \
+            scons "
+
+        backend_pip_dependencies += "aiohttp expecttest hypothesis ninja protobuf pyyaml scipy typing_extensions xmlrunner"
+
+    # dependencies needed by onnxruntime
+    if 'onnxruntime' in backends:
+        backend_pip_dependencies = " flake8 flatbuffers"
+
+    # libopenblas-dev is needed by both onnxruntime and pytorch backends
+    if ('onnxruntime' in backends) or ('pytorch' in backends):
+        backend_pip_dependencies = " libopenblas-dev"
+
+    if 'python' in backend:
+        backend_dependencies += " libarchive-dev"
+
+    df += '''
+# TODO: Get rid of TF variables and gpu_enabled?
+ENV TF_ADJUST_HUE_FUSED         1
+ENV TF_ADJUST_SATURATION_FUSED  1
+ENV TF_ENABLE_WINOGRAD_NONFUSED 1
+ENV TF_AUTOTUNE_THRESHOLD       2
+ENV TRITON_SERVER_GPU_ENABLED   1
+
+# Create a user that can be used to run triton as
+# non-root. Make sure that this user to given ID 1000. All server
+# artifacts copied below are assign to this user.
+ENV TRITON_SERVER_USER=triton-server
+RUN userdel tensorrt-server > /dev/null 2>&1 || true && \
+    if ! id -u $TRITON_SERVER_USER > /dev/null 2>&1 ; then \
+        useradd $TRITON_SERVER_USER; \
+    fi && \
+    [ `id -u $TRITON_SERVER_USER` -eq 1000 ] && \
+    [ `id -g $TRITON_SERVER_USER` -eq 1000 ]
+
+# Ensure apt-get won't prompt for selecting options
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Common dependencies.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
+            curl \
+            git \
+            jq \
+            libb64-dev \
+            libre2-dev \
+            libssl-dev \
+            libtool \
+            libboost-dev \
+            rapidjson-dev \
+            patchelf \
+            pkg-config \
+            python3 \
+            python3-dev \
+            python3-pip \
+            software-properties-common \
+            zlib1g-dev
+
+RUN pip3 install --upgrade \
+            attrdict \
+            cython \
+            grpcio-tools \
+            numpy \
+            pillow \
+            # Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
+            setuptools==65.5.1 \
+            wheel \
+
+# Dependencies unique to backends.
+# Separated into its own layer so that previous Docker layers can be reused
+# between containers with different backends.
+RUN apt-get install -y --no-install-recommends \
+            {backend_dependencies} && \
+            rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade \
+            {backend_pip_dependencies}
+
+# Remove python2.7 and make python -> python3
+# Both Python 3.8 and 3.9 will be installed. Remove Python 3.9 to avoid python backend build failure.
+RUN apt-get purge -y python2.7-minimal python3.9-minimal
+RUN ln -snf /usr/bin/python3 /usr/bin/python
+
+ARG TORCH_INSTALL=http://sqrl.nvidia.com/nvdl/datasets/pip-scratch/jp/v51/pytorch/torch-1.14.0a0+44dac51c.nv23.01-cp38-cp38-linux_aarch64.whl
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/lib/llvm-8/lib"
+RUN pip install --upgrade $TORCH_INSTALL
+
+# TODO: Get rid of TCMALLOC?
+# Set TCMALLOC_RELEASE_RATE for users setting LD_PRELOAD with tcmalloc
+# ENV TCMALLOC_RELEASE_RATE 200
+'''.format(backend_dependencies=backend_dependencies, backend_pip_dependencies=backend_pip_dependencies)
+
+    return df
+
 def create_dockerfile_linux(ddir, dockerfile_name, argmap, backends, repoagents,
                             caches, endpoints):
     df = '''
@@ -1300,6 +1497,9 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
         base_image = images['base']
     elif target_platform() == 'windows':
         base_image = 'mcr.microsoft.com/dotnet/framework/sdk:4.8'
+    elif target_platform() == 'jetpack':
+        # TODO: Make container version set by flag
+        base_image = 'nvcr.io/nvidia/l4t-jetpack:r35.2.1'
     elif FLAGS.enable_gpu:
         base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
             FLAGS.upstream_container_version)
@@ -1341,12 +1541,16 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
     create_dockerfile_buildbase(FLAGS.build_dir, 'Dockerfile.buildbase',
                                 dockerfileargmap)
 
-    if target_platform() == 'windows':
-        create_dockerfile_windows(FLAGS.build_dir, 'Dockerfile',
-                                  dockerfileargmap, backends, repoagents, caches)
-    else:
+    if target_platform() == 'linux':
         create_dockerfile_linux(FLAGS.build_dir, 'Dockerfile', dockerfileargmap,
                                 backends, repoagents, caches, endpoints)
+    elif target_platform() == 'jetpack':
+        create_dockerfile_jetpack(FLAGS.build_dir, 'Dockerfile', dockerfileargmap,
+                                backends)
+    else:
+        create_dockerfile_windows(FLAGS.build_dir, 'Dockerfile',
+                                  dockerfileargmap, backends, repoagents, caches)
+        
 
     # Dockerfile used for the creating the CI base image.
     create_dockerfile_cibase(FLAGS.build_dir, 'Dockerfile.cibase',
