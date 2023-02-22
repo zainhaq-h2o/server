@@ -1020,7 +1020,7 @@ FROM ${BASE_IMAGE}
 '''
 
     df += dockerfile_prepare_container_jetson(argmap, backends,
-                                             target_machine())
+                                              target_machine())
 
     df += '''
 WORKDIR /opt
@@ -1035,8 +1035,7 @@ COPY --chown=1000:1000 NVIDIA_Deep_Learning_Container_License.pdf .
         dfile.write(df)
 
 
-def dockerfile_prepare_container_jetson(argmap, backends,
-                                       target_machine):
+def dockerfile_prepare_container_jetson(argmap, backends, target_machine):
     # Common steps to produce docker images shared by build.py and compose.py.
     # Sets enviroment variables, installs dependencies and adds entrypoint
     df = '''
@@ -1196,9 +1195,11 @@ RUN pip install --upgrade $TORCH_INSTALL
 # TODO: Get rid of TCMALLOC?
 # Set TCMALLOC_RELEASE_RATE for users setting LD_PRELOAD with tcmalloc
 # ENV TCMALLOC_RELEASE_RATE 200
-'''.format(backend_dependencies=backend_dependencies, backend_pip_dependencies=backend_pip_dependencies)
+'''.format(backend_dependencies=backend_dependencies,
+           backend_pip_dependencies=backend_pip_dependencies)
 
     return df
+
 
 def create_dockerfile_linux(ddir, dockerfile_name, argmap, backends, repoagents,
                             caches, endpoints):
@@ -1341,7 +1342,8 @@ ENV TCMALLOC_RELEASE_RATE 200
     if ('fastertransformer' in backends):
         be = "fastertransformer"
         import importlib.util, requests
-        url = 'https://raw.githubusercontent.com/triton-inference-server/fastertransformer_backend/{}/docker/create_dockerfile_and_build.py'.format(backends[be])
+        url = 'https://raw.githubusercontent.com/triton-inference-server/fastertransformer_backend/{}/docker/create_dockerfile_and_build.py'.format(
+            backends[be])
         response = requests.get(url)
         spec = importlib.util.spec_from_loader('fastertransformer_buildscript',
                                                loader=None,
@@ -1545,8 +1547,8 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
         create_dockerfile_linux(FLAGS.build_dir, 'Dockerfile', dockerfileargmap,
                                 backends, repoagents, caches, endpoints)
     elif target_platform() == 'jetpack':
-        create_dockerfile_jetpack(FLAGS.build_dir, 'Dockerfile', dockerfileargmap,
-                                backends)
+        create_dockerfile_jetpack(FLAGS.build_dir, 'Dockerfile',
+                                  dockerfileargmap, backends)
     else:
         create_dockerfile_windows(FLAGS.build_dir, 'Dockerfile',
                                   dockerfileargmap, backends, repoagents, caches)
