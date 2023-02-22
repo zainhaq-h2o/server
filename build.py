@@ -1003,7 +1003,7 @@ ENV NVIDIA_TRITON_SERVER_VERSION ${TRITON_CONTAINER_VERSION}
         dfile.write(df)
 
 
-def create_dockerfile_jetson(ddir, dockerfile_name, argmap, backends):
+def create_dockerfile_jetpack(ddir, dockerfile_name, argmap, backends):
     df = '''
 ARG TRITON_VERSION={}
 ARG TRITON_CONTAINER_VERSION={}
@@ -1115,7 +1115,7 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
     if ('onnxruntime' in backends) or ('pytorch' in backends):
         backend_pip_dependencies = " libopenblas-dev"
 
-    if 'python' in backend:
+    if 'python' in backends:
         backend_dependencies += " libarchive-dev"
 
     df += '''
