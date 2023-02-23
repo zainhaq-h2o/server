@@ -899,6 +899,7 @@ RUN apt-get update && \
             autoconf \
             automake \
             build-essential \
+            curl \
             docker.io \
             git \
             gperf \
@@ -1146,7 +1147,6 @@ RUN apt-get update && \
             autoconf \
             automake \
             build-essential \
-            curl \
             git \
             jq \
             libb64-dev \
