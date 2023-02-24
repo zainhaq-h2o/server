@@ -1519,7 +1519,7 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
         base_image = 'mcr.microsoft.com/dotnet/framework/sdk:4.8'
     elif target_platform() == 'jetpack':
         # TODO: Make container version set by flag
-        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1'
+        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
         images['base'] = base_image
     elif FLAGS.enable_gpu:
         base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
@@ -2461,10 +2461,6 @@ if __name__ == '__main__':
     images = {}
 
     if target_platform() == 'jetpack' and FLAGS.image:
-        print("*** change registered")
-        print(FLAGS.image)
-        for img in FLAGS.image:
-            print(img)
         fail('cannot set images for jetpack build, uses base image')
 
     for img in FLAGS.image:
