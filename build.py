@@ -2461,6 +2461,8 @@ if __name__ == '__main__':
     images = {}
 
     if target_platform() == 'jetpack' and FLAGS.image is not []:
+        for img in FLAGS.image:
+            print(img)
         fail('cannot set images for jetpack build, uses base image')
 
     for img in FLAGS.image:
