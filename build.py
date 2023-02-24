@@ -627,6 +627,8 @@ def pytorch_cmake_args(images):
     else:
         if "pytorch" in images:
             image = images["pytorch"]
+        elif target_platform() == 'jetpack':
+            image = images['base']
         else:
             image = 'nvcr.io/nvidia/pytorch:{}-py3'.format(
                 FLAGS.upstream_container_version)
@@ -681,6 +683,10 @@ def onnxruntime_cmake_args(images, library_paths):
                                       None, images['base']))
         else:
             if 'base' in images:
+                cargs.append(
+                    cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
+                                      None, images['ort-base']))
+            elif target_platform() == 'jetpack':
                 cargs.append(
                     cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
                                       None, images['base']))
@@ -757,7 +763,17 @@ def tensorflow_cmake_args(ver, images, library_paths):
             )
     else:
         # If a specific TF image is specified use it, otherwise pull from NGC.
-        if backend_name in images:
+        # TODO: Figure out where to get TF1
+        if target_platform() == 'jetpack':
+            if ver == 1:
+                image = 'nvcr.io/nvidia/l4t-ml:r35.1.0-py3'
+            elif ver == 2:
+                image = images['base']
+            else:
+                fail(
+                    'Jetpack only supports TensorFlow 1 and 2, found {}'.format(
+                        ver))
+        elif backend_name in images:
             image = images[backend_name]
         else:
             image = 'nvcr.io/nvidia/tensorflow:{}-tf{}-py3'.format(
@@ -1503,7 +1519,8 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
         base_image = 'mcr.microsoft.com/dotnet/framework/sdk:4.8'
     elif target_platform() == 'jetpack':
         # TODO: Make container version set by flag
-        base_image = 'nvcr.io/nvidia/l4t-jetpack:r35.2.1'
+        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1'
+        images['base'] = base_image
     elif FLAGS.enable_gpu:
         base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
             FLAGS.upstream_container_version)
@@ -1534,7 +1551,8 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
     # are not CPU-only.
     if not FLAGS.enable_gpu and (
         ('pytorch' in backends) or ('tensorflow1' in backends) or
-        ('tensorflow2' in backends)) and (target_platform() != 'windows'):
+        ('tensorflow2' in backends)) and (target_platform() != 'windows') and (
+            target_platform() != 'jetpack'):
         if 'gpu-base' in images:
             gpu_base_image = images['gpu-base']
         else:
@@ -2441,6 +2459,10 @@ if __name__ == '__main__':
 
     # Initialize map of docker images.
     images = {}
+
+    if target_platform() == 'jetpack' and FLAGS.image is not []:
+        fail('cannot set images for jetpack build, uses base image')
+
     for img in FLAGS.image:
         parts = img.split(',')
         fail_if(
