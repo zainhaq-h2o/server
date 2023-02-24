@@ -1169,9 +1169,11 @@ RUN pip3 install --upgrade \
             grpcio-tools \
             numpy \
             pillow \
-            # Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
-            setuptools==65.5.1 \
-            wheel \
+            wheel
+
+# Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
+RUN pip3 install --upgrade \
+            setuptools==65.5.1
 
 # Dependencies unique to backends.
 # Separated into its own layer so that previous Docker layers can be reused
