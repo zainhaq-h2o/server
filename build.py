@@ -1049,6 +1049,43 @@ LABEL com.nvidia.tritonserver.version="${TRITON_SERVER_VERSION}"
 
 ENV PATH /opt/tritonserver/bin:${PATH}
 
+# Ensure apt-get won't prompt for selecting options
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Common dependencies.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
+            git \
+            jq \
+            libb64-dev \
+            libre2-dev \
+            libssl-dev \
+            libtool \
+            libboost-dev \
+            rapidjson-dev \
+            patchelf \
+            pkg-config \
+            python3 \
+            python3-dev \
+            python3-pip \
+            software-properties-common \
+            zlib1g-dev
+
+RUN pip3 install --upgrade \
+            attrdict \
+            cython \
+            grpcio-tools \
+            numpy \
+            pillow \
+            wheel
+
+# Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
+RUN pip3 install --upgrade \
+            setuptools==65.5.1
+
 #
 # Cmake upgrade to 3.21.0 (apt installs version 3.10.2) - ORT 1.8.1 needs 3.21.0
 #
@@ -1137,43 +1174,6 @@ RUN userdel tensorrt-server > /dev/null 2>&1 || true && \
     fi && \
     [ `id -u $TRITON_SERVER_USER` -eq 1000 ] && \
     [ `id -g $TRITON_SERVER_USER` -eq 1000 ]
-
-# Ensure apt-get won't prompt for selecting options
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Common dependencies.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-            autoconf \
-            automake \
-            build-essential \
-            git \
-            jq \
-            libb64-dev \
-            libre2-dev \
-            libssl-dev \
-            libtool \
-            libboost-dev \
-            rapidjson-dev \
-            patchelf \
-            pkg-config \
-            python3 \
-            python3-dev \
-            python3-pip \
-            software-properties-common \
-            zlib1g-dev
-
-RUN pip3 install --upgrade \
-            attrdict \
-            cython \
-            grpcio-tools \
-            numpy \
-            pillow \
-            wheel
-
-# Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
-RUN pip3 install --upgrade \
-            setuptools==65.5.1
 
 # Dependencies unique to backends.
 # Separated into its own layer so that previous Docker layers can be reused
