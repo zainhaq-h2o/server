@@ -1560,7 +1560,8 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
                 FLAGS.upstream_container_version)
         dockerfileargmap['GPU_BASE_IMAGE'] = gpu_base_image
 
-    create_dockerfile_buildbase(FLAGS.build_dir, 'Dockerfile.buildbase',
+    # TODO: If works, need a separate build vs runtime container... since Dockerfile for runtime container?
+    create_dockerfile_jetpack(FLAGS.build_dir, 'Dockerfile.buildbase',
                                 dockerfileargmap)
 
     if target_platform() == 'linux':
