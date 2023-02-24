@@ -2460,7 +2460,7 @@ if __name__ == '__main__':
     # Initialize map of docker images.
     images = {}
 
-    if target_platform() == 'jetpack' and FLAGS.image is not []:
+    if target_platform() == 'jetpack' and FLAGS.image is not None:
         for img in FLAGS.image:
             print(img)
         fail('cannot set images for jetpack build, uses base image')
