@@ -1023,12 +1023,13 @@ ARG TRITON_VERSION
 ARG TRITON_CONTAINER_VERSION
 '''
     # Install the architecture-specific buildbase dependencies
+    if target_platform() == 'jetpack':
+        df += get_build_dependencies_jetpack(backends)
+
     if target_platform() == 'windows':
         df += '''
 SHELL ["cmd", "/S", "/C"]
 '''
-    elif target_platform() == 'jetpack':
-        df += get_build_dependencies_jetpack(backends)
     else:
         df += '''
 # Ensure apt-get won't prompt for selecting options
@@ -1117,7 +1118,7 @@ ENTRYPOINT []
 '''
 
     # Install miniconda required for the DALI backend.
-    if target_platform() != 'windows':
+    if target_platform() == 'linux':
         df += install_miniconda(argmap['CONDA_VERSION'], target_machine())
 
     with open(os.path.join(ddir, dockerfile_name), "w") as dfile:
