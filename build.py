@@ -883,6 +883,7 @@ ENV PATH /opt/conda/bin:${{PATH}}
 def get_build_dependencies_jetpack(backends):
     df = '''
     # Common dependencies.
+    # TODO remove dependencies already in buildbase function
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
             autoconf \
@@ -915,19 +916,6 @@ RUN pip3 install --upgrade \
 # Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
 RUN pip3 install --upgrade \
             setuptools==65.5.1
-
-#
-# Cmake upgrade to 3.21.0 (apt installs version 3.10.2) - ORT 1.8.1 needs 3.21.0
-#
-RUN apt remove -y cmake
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-      gpg --dearmor - | \
-      tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
-    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
-    apt-get update && \
-      apt-get install -y --no-install-recommends \
-        cmake-data=3.21.1-0kitware1ubuntu20.04.1 cmake=3.21.1-0kitware1ubuntu20.04.1; \
-    cmake --version
         '''
 
     backend_dependencies = ""
