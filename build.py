@@ -989,23 +989,6 @@ RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/nul
         backend_dependencies += " libarchive-dev"
 
     df += '''
-# TODO: Get rid of TF variables and gpu_enabled?
-ENV TF_ADJUST_HUE_FUSED         1
-ENV TF_ADJUST_SATURATION_FUSED  1
-ENV TF_ENABLE_WINOGRAD_NONFUSED 1
-ENV TF_AUTOTUNE_THRESHOLD       2
-ENV TRITON_SERVER_GPU_ENABLED   1
-
-# Create a user that can be used to run triton as
-# non-root. Make sure that this user to given ID 1000. All server
-# artifacts copied below are assign to this user.
-ENV TRITON_SERVER_USER=triton-server
-RUN userdel tensorrt-server > /dev/null 2>&1 || true && \
-    if ! id -u $TRITON_SERVER_USER > /dev/null 2>&1 ; then \
-        useradd $TRITON_SERVER_USER; \
-    fi && \
-    [ `id -u $TRITON_SERVER_USER` -eq 1000 ] && \
-    [ `id -g $TRITON_SERVER_USER` -eq 1000 ]
 
 # Dependencies unique to backends.
 # Separated into its own layer so that previous Docker layers can be reused
@@ -1025,7 +1008,8 @@ RUN ln -snf /usr/bin/python3 /usr/bin/python
 ARG TORCH_INSTALL=http://sqrl.nvidia.com/nvdl/datasets/pip-scratch/jp/v51/pytorch/torch-1.14.0a0+44dac51c.nv23.01-cp38-cp38-linux_aarch64.whl
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/lib/llvm-8/lib"
 RUN pip install --upgrade $TORCH_INSTALL
-'''
+'''.format(backend_dependencies=backend_dependencies,
+           backend_pip_dependencies=backend_pip_dependencies)
     return df
 
 
