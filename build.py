@@ -880,7 +880,7 @@ ENV PATH /opt/conda/bin:${{PATH}}
 '''
 
 
-def get_dependencies_jetpack(backends):
+def get_build_dependencies_jetpack(backends):
     df = '''
     # Common dependencies.
 RUN apt-get update && \
@@ -929,16 +929,11 @@ RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/nul
         cmake-data=3.21.1-0kitware1ubuntu20.04.1 cmake=3.21.1-0kitware1ubuntu20.04.1; \
     cmake --version
         '''
-    if 'onnxruntime' in backends:
-        df += '''
-ENV LD_LIBRARY_PATH /opt/tritonserver/backends/onnxruntime:${LD_LIBRARY_PATH}
-ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
-'''
 
     backend_dependencies = ""
     backend_pip_dependencies = ""
 
-    # dependencies needed by PyTorch
+    # build dependencies needed by PyTorch
     if 'pytorch' in backends:
         backend_dependencies += " \
             autoconf \
@@ -971,9 +966,18 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
             rsync \
             scons "
 
-        backend_pip_dependencies += "aiohttp expecttest hypothesis ninja protobuf pyyaml scipy typing_extensions xmlrunner"
+        backend_pip_dependencies += " \
+        aiohttp \
+        expecttest \
+        hypothesis \
+        ninja \
+        protobuf \
+        pyyaml \
+        scipy \
+        typing_extensions \
+        xmlrunner"
 
-    # dependencies needed by onnxruntime
+    # build dependencies needed by onnxruntime
     if 'onnxruntime' in backends:
         backend_pip_dependencies = " flake8 flatbuffers"
 
@@ -1045,7 +1049,7 @@ ARG TRITON_CONTAINER_VERSION
 SHELL ["cmd", "/S", "/C"]
 '''
     elif target_platform() == 'jetpack':
-        df += get_dependencies_jetpack(backends)
+        df += get_build_dependencies_jetpack(backends)
     else:
         df += '''
 # Ensure apt-get won't prompt for selecting options
@@ -1215,52 +1219,31 @@ ENV PATH /opt/tritonserver/bin:${PATH}
 # Ensure apt-get won't prompt for selecting options
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Common dependencies.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-            autoconf \
-            automake \
-            build-essential \
-            git \
-            jq \
-            libb64-dev \
-            libre2-dev \
-            libssl-dev \
-            libtool \
-            libboost-dev \
-            rapidjson-dev \
-            patchelf \
-            pkg-config \
-            python3 \
-            python3-dev \
-            python3-pip \
-            software-properties-common \
-            zlib1g-dev
-
-RUN pip3 install --upgrade \
-            attrdict \
-            cython \
-            grpcio-tools \
-            numpy \
-            pillow \
-            wheel
-
+# Common runtime dependencies.
 # Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
 RUN pip3 install --upgrade \
-            setuptools==65.5.1
+            setuptools==65.5.1 \
+            wheel \
+            attrdict \
+            grpcio-tools \
+            numpy \
+            pillow
+            
 
-#
-# Cmake upgrade to 3.21.0 (apt installs version 3.10.2) - ORT 1.8.1 needs 3.21.0
-#
-RUN apt remove -y cmake
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-      gpg --dearmor - | \
-      tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
-    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
-    apt-get update && \
-      apt-get install -y --no-install-recommends \
-        cmake-data=3.21.1-0kitware1ubuntu20.04.1 cmake=3.21.1-0kitware1ubuntu20.04.1; \
-    cmake --version
+RUN apt-get update && \
+        apt-get install -y --no-install-recommends \
+        curl \
+        jq \
+        libb64-0d \
+        libre2-5 \
+        libssl1.1 \
+        rapidjson-dev \
+        libarchive-dev \
+        zlib1g \
+        python3 \
+        python3-dev \
+        python3-pip
+
 '''
     # TODO Remove env variables if not needed?
     # TODO Remove once the ORT-OpenVINO "Exception while Reading network" is fixed
@@ -1273,7 +1256,7 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
     backend_dependencies = ""
     backend_pip_dependencies = ""
 
-    # dependencies needed by PyTorch
+    # runtime dependencies needed by PyTorch
     if 'pytorch' in backends:
         backend_dependencies += " \
             autoconf \
@@ -1306,9 +1289,18 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
             rsync \
             scons "
 
-        backend_pip_dependencies += "aiohttp expecttest hypothesis ninja protobuf pyyaml scipy typing_extensions xmlrunner"
+        backend_pip_dependencies += " \
+        aiohttp \
+        expecttest \
+        hypothesis \
+        ninja \
+        protobuf \
+        pyyaml \
+        scipy \
+        typing_extensions \
+        xmlrunner"
 
-    # dependencies needed by onnxruntime
+    # runtime dependencies needed by onnxruntime
     if 'onnxruntime' in backends:
         backend_pip_dependencies = " flake8 flatbuffers"
 
