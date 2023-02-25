@@ -413,6 +413,7 @@ def cmake_repoagent_extra_args():
     args = []
     return args
 
+
 def cmake_cache_arg(name, type, value):
     # For now there is no override for caches
     if type is None:
@@ -423,15 +424,16 @@ def cmake_cache_arg(name, type, value):
 
 
 def cmake_cache_enable(name, flag):
-    # For now there is no override for caches 
+    # For now there is no override for caches
     value = 'ON' if flag else 'OFF'
     return '"-D{}:BOOL={}"'.format(name, value)
 
 
 def cmake_cache_extra_args():
-    # For now there is no extra args for caches 
+    # For now there is no extra args for caches
     args = []
     return args
+
 
 def core_cmake_args(components, backends, cmake_dir, install_dir):
     cargs = [
@@ -520,9 +522,11 @@ def repoagent_cmake_args(images, components, ra, install_dir):
     cargs.append('..')
     return cargs
 
+
 def cache_repo(cache):
     # example: "local", or "redis"
     return '{}_cache'.format(cache)
+
 
 def cache_cmake_args(images, components, cache, install_dir):
     args = []
@@ -531,15 +535,15 @@ def cache_cmake_args(images, components, cache, install_dir):
         cmake_cache_arg('CMAKE_BUILD_TYPE', None, FLAGS.build_type),
         cmake_cache_arg('CMAKE_INSTALL_PREFIX', 'PATH', install_dir),
         cmake_cache_arg('TRITON_COMMON_REPO_TAG', 'STRING',
-                            components['common']),
-        cmake_cache_arg('TRITON_CORE_REPO_TAG', 'STRING',
-                            components['core'])
+                        components['common']),
+        cmake_cache_arg('TRITON_CORE_REPO_TAG', 'STRING', components['core'])
     ]
 
     cargs.append(cmake_cache_enable('TRITON_ENABLE_GPU', FLAGS.enable_gpu))
     cargs += cmake_cache_extra_args()
     cargs.append('..')
     return cargs
+
 
 def backend_repo(be):
     if (be == 'tensorflow1') or (be == 'tensorflow2'):
@@ -1685,8 +1689,8 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
                                   dockerfileargmap, backends)
     else:
         create_dockerfile_windows(FLAGS.build_dir, 'Dockerfile',
-                                  dockerfileargmap, backends, repoagents, caches)
-        
+                                  dockerfileargmap, backends, repoagents,
+                                  caches)
 
     # Dockerfile used for the creating the CI base image.
     create_dockerfile_cibase(FLAGS.build_dir, 'Dockerfile.cibase',
@@ -1953,15 +1957,15 @@ def repo_agent_build(ra, cmake_script, build_dir, install_dir, repoagent_repo,
     cmake_script.commentln(8)
     cmake_script.blankln()
 
+
 def cache_build(cache, cmake_script, build_dir, install_dir, cache_repo,
-                     caches):
+                caches):
     repo_build_dir = os.path.join(build_dir, cache, 'build')
     repo_install_dir = os.path.join(build_dir, cache, 'install')
 
     cmake_script.commentln(8)
     cmake_script.comment(f'\'{cache}\' cache')
-    cmake_script.comment(
-        'Delete this section to remove cache from build')
+    cmake_script.comment('Delete this section to remove cache from build')
     cmake_script.comment()
     cmake_script.mkdir(build_dir)
     cmake_script.cwd(build_dir)
@@ -1982,6 +1986,7 @@ def cache_build(cache, cmake_script, build_dir, install_dir, cache_repo,
     cmake_script.comment(f'end \'{cache}\' cache')
     cmake_script.commentln(8)
     cmake_script.blankln()
+
 
 def cibase_build(cmake_script, repo_dir, cmake_dir, build_dir, install_dir,
                  ci_dir, backends):
@@ -2746,7 +2751,7 @@ if __name__ == '__main__':
         # Commands to build each cache...
         for cache in caches:
             cache_build(cache, cmake_script, script_build_dir,
-                             script_install_dir, cache_repo, caches)
+                        script_install_dir, cache_repo, caches)
 
         # Commands needed only when building with Docker...
         if not FLAGS.no_container_build:
