@@ -880,7 +880,152 @@ ENV PATH /opt/conda/bin:${{PATH}}
 '''
 
 
-def create_dockerfile_buildbase(ddir, dockerfile_name, argmap):
+def install_jetpack_dependencies(ddir, dockerfile_name, argmap, backends):
+    df = '''
+    # Common dependencies.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
+            git \
+            jq \
+            libb64-dev \
+            libre2-dev \
+            libssl-dev \
+            libtool \
+            libboost-dev \
+            rapidjson-dev \
+            patchelf \
+            pkg-config \
+            python3 \
+            python3-dev \
+            python3-pip \
+            software-properties-common \
+            zlib1g-dev
+
+RUN pip3 install --upgrade \
+            attrdict \
+            cython \
+            grpcio-tools \
+            numpy \
+            pillow \
+            wheel
+
+# Using specific version of 'setuptools': https://github.com/pypa/setuptools/issues/3772
+RUN pip3 install --upgrade \
+            setuptools==65.5.1
+
+#
+# Cmake upgrade to 3.21.0 (apt installs version 3.10.2) - ORT 1.8.1 needs 3.21.0
+#
+RUN apt remove -y cmake
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
+      gpg --dearmor - | \
+      tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
+    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
+    apt-get update && \
+      apt-get install -y --no-install-recommends \
+        cmake-data=3.21.1-0kitware1ubuntu20.04.1 cmake=3.21.1-0kitware1ubuntu20.04.1; \
+    cmake --version
+        '''
+    if 'onnxruntime' in backends:
+        df += '''
+ENV LD_LIBRARY_PATH /opt/tritonserver/backends/onnxruntime:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH /usr/local/cuda-11.8/lib64:${LD_LIBRARY_PATH}
+'''
+
+    backend_dependencies = ""
+    backend_pip_dependencies = ""
+
+    # dependencies needed by PyTorch
+    if 'pytorch' in backends:
+        backend_dependencies += " \
+            autoconf \
+            bc \
+            g++-8 \
+            gcc-8 \
+            clang-8 \
+            lld-8 \
+            gettext-base \
+            gfortran-8 \
+            iputils-ping \
+            libbz2-dev \
+            libc++-dev \
+            libcgal-dev \
+            libffi-dev \
+            libfreetype6-dev \
+            libhdf5-dev \
+            libjpeg-dev \
+            liblzma-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libpng-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            libxml2-dev \
+            libxslt-dev \
+            locales \
+            moreutils \
+            openssl \
+            rsync \
+            scons "
+
+        backend_pip_dependencies += "aiohttp expecttest hypothesis ninja protobuf pyyaml scipy typing_extensions xmlrunner"
+
+    # dependencies needed by onnxruntime
+    if 'onnxruntime' in backends:
+        backend_pip_dependencies = " flake8 flatbuffers"
+
+    # libopenblas-dev is needed by both onnxruntime and pytorch backends
+    if ('onnxruntime' in backends) or ('pytorch' in backends):
+        backend_pip_dependencies = " libopenblas-dev"
+
+    if 'python' in backends:
+        backend_dependencies += " libarchive-dev"
+
+    df += '''
+# TODO: Get rid of TF variables and gpu_enabled?
+ENV TF_ADJUST_HUE_FUSED         1
+ENV TF_ADJUST_SATURATION_FUSED  1
+ENV TF_ENABLE_WINOGRAD_NONFUSED 1
+ENV TF_AUTOTUNE_THRESHOLD       2
+ENV TRITON_SERVER_GPU_ENABLED   1
+
+# Create a user that can be used to run triton as
+# non-root. Make sure that this user to given ID 1000. All server
+# artifacts copied below are assign to this user.
+ENV TRITON_SERVER_USER=triton-server
+RUN userdel tensorrt-server > /dev/null 2>&1 || true && \
+    if ! id -u $TRITON_SERVER_USER > /dev/null 2>&1 ; then \
+        useradd $TRITON_SERVER_USER; \
+    fi && \
+    [ `id -u $TRITON_SERVER_USER` -eq 1000 ] && \
+    [ `id -g $TRITON_SERVER_USER` -eq 1000 ]
+
+# Dependencies unique to backends.
+# Separated into its own layer so that previous Docker layers can be reused
+# between containers with different backends.
+RUN apt-get install -y --no-install-recommends \
+            {backend_dependencies} && \
+            rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade \
+            {backend_pip_dependencies}
+
+# Remove python2.7 and make python -> python3
+# Both Python 3.8 and 3.9 will be installed. Remove Python 3.9 to avoid python backend build failure.
+RUN apt-get purge -y python2.7-minimal python3.9-minimal
+RUN ln -snf /usr/bin/python3 /usr/bin/python
+
+ARG TORCH_INSTALL=http://sqrl.nvidia.com/nvdl/datasets/pip-scratch/jp/v51/pytorch/torch-1.14.0a0+44dac51c.nv23.01-cp38-cp38-linux_aarch64.whl
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/lib/llvm-8/lib"
+RUN pip install --upgrade $TORCH_INSTALL
+'''
+    return df
+
+
+def create_dockerfile_buildbase(ddir, dockerfile_name, argmap, backends):
     df = '''
 ARG TRITON_VERSION={}
 ARG TRITON_CONTAINER_VERSION={}
@@ -894,11 +1039,13 @@ FROM ${BASE_IMAGE}
 ARG TRITON_VERSION
 ARG TRITON_CONTAINER_VERSION
 '''
-    # Install the windows- or linux-specific buildbase dependencies
+    # Install the architecture-specific buildbase dependencies
     if target_platform() == 'windows':
         df += '''
 SHELL ["cmd", "/S", "/C"]
 '''
+    elif target_platform() == 'jetpack':
+        df += install_jetpack_dependencies(backends)
     else:
         df += '''
 # Ensure apt-get won't prompt for selecting options
@@ -1036,8 +1183,8 @@ ARG BASE_IMAGE={}
 FROM ${BASE_IMAGE}
 '''
 
-    df += dockerfile_prepare_container_jetson(argmap, backends,
-                                              target_machine())
+    df += dockerfile_prepare_container_jetpack(argmap, backends,
+                                               target_machine())
 
     df += '''
 WORKDIR /opt
@@ -1052,7 +1199,7 @@ COPY --chown=1000:1000 NVIDIA_Deep_Learning_Container_License.pdf .
         dfile.write(df)
 
 
-def dockerfile_prepare_container_jetson(argmap, backends, target_machine):
+def dockerfile_prepare_container_jetpack(argmap, backends, target_machine):
     # Common steps to produce docker images shared by build.py and compose.py.
     # Sets enviroment variables, installs dependencies and adds entrypoint
     df = '''
@@ -1560,8 +1707,7 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
                 FLAGS.upstream_container_version)
         dockerfileargmap['GPU_BASE_IMAGE'] = gpu_base_image
 
-    # TODO: If works, need a separate build vs runtime container... since Dockerfile for runtime container?
-    create_dockerfile_jetpack(FLAGS.build_dir, 'Dockerfile.buildbase',
+    create_dockerfile_buildbase(FLAGS.build_dir, 'Dockerfile.buildbase',
                                 dockerfileargmap, backends)
 
     if target_platform() == 'linux':
