@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -54,7 +54,6 @@ STRING_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/string_data.js
 STRING_WITHSHAPE_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/string_data_with_shape.json
 SEQ_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/seq_data.json
 SHAPETENSORADTAFILE=`pwd`/../common/perf_analyzer_input_data_json/shape_tensor_data.json
-IMAGE_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/image_data.json
 
 OUTPUT_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/output.json
 NON_ALIGNED_OUTPUT_JSONDATAFILE=`pwd`/../common/perf_analyzer_input_data_json/non_aligned_output.json
@@ -82,7 +81,6 @@ mkdir -p $DATADIR
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_model_repository/graphdef_int32_int32_int32 $DATADIR/
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_model_repository/graphdef_nobatch_int32_int32_int32 $DATADIR/
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_model_repository/graphdef_object_object_object $DATADIR/
-cp -r /data/inferenceserver/${REPO_VERSION}/qa_model_repository/graphdef_nobatch_object_object_object $DATADIR/
 
 # Copy a variable-shape models
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_variable_model_repository/graphdef_object_int32_int32 $DATADIR/
@@ -92,20 +90,13 @@ cp -r /data/inferenceserver/${REPO_VERSION}/qa_variable_model_repository/graphde
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_shapetensor_model_repository/plan_zero_1_float32 $DATADIR/
 
 # Copying ensemble including a sequential model
-cp -r /data/inferenceserver/${REPO_VERSION}/qa_sequence_model_repository/savedmodel_sequence_object $DATADIR
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_ensemble_model_repository/qa_sequence_model_repository/simple_savedmodel_sequence_object $DATADIR
-cp -r /data/inferenceserver/${REPO_VERSION}/qa_ensemble_model_repository/qa_sequence_model_repository/nop_TYPE_FP32_-1 $DATADIR
 
 # Copying variable sequence model
 cp -r /data/inferenceserver/${REPO_VERSION}/qa_variable_sequence_model_repository/graphdef_sequence_float32 $DATADIR
 
-mkdir $DATADIR/nop_TYPE_FP32_-1/1
-
 # Copy inception model to the model repository
 cp -r /data/inferenceserver/${REPO_VERSION}/tf_model_store/inception_v1_graphdef $DATADIR
-
-# Copy resnet50v1.5_fp16
-cp -r /data/inferenceserver/${REPO_VERSION}/perf_model_store/resnet50v1.5_fp16_savedmodel $DATADIR
 
 # Copy and customize custom_zero_1_float32
 cp -r ../custom_models/custom_zero_1_float32 $DATADIR && \
