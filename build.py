@@ -899,7 +899,6 @@ RUN apt-get update && \
             libre2-dev \
             libssl-dev \
             libtool \
-            libboost-dev \
             rapidjson-dev \
             patchelf \
             pkg-config \
