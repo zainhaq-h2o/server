@@ -972,9 +972,10 @@ RUN pip3 install --upgrade \
     if 'onnxruntime' in backends:
         backend_pip_dependencies += " flake8 flatbuffers"
 
+    # TODO: Is libopenblas-dev actually a build depdenency?
     # libopenblas-dev is needed by both onnxruntime and pytorch backends
     if ('onnxruntime' in backends) or ('pytorch' in backends):
-        backend_pip_dependencies += " libopenblas-dev"
+        backend_dependencies += " libopenblas-dev"
 
     if 'python' in backends:
         backend_dependencies += " libarchive-dev"
