@@ -2552,11 +2552,14 @@ if __name__ == '__main__':
     # Initialize map of docker images.
     images = {}
 
-    if target_platform() == 'jetpack' and FLAGS.image:
-        fail('cannot set images for jetpack build, uses base image')
-        # TODO: Make container version set by flag
-        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
-        images['base'] = base_image
+    if target_platform() == 'jetpack'
+        if FLAGS.image:
+            fail('cannot set images for jetpack build, uses base image')
+        else:
+            # TODO: Make container version set by flag
+            base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
+            images['base'] = base_image
+        
 
     for img in FLAGS.image:
         parts = img.split(',')
