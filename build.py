@@ -725,7 +725,7 @@ def tensorflow_cmake_args(ver, images, library_paths):
     # If platform is jetpack do not use docker images for TF1
     # TODO: Switch to Docker for TF1 but figure out how to add library
     extra_args = []
-    if target_platform() == 'jetpack' and 'ver' == 1:
+    if target_platform() == 'jetpack' and ver == 1:
         if backend_name in library_paths:
             extra_args = [
                 cmake_backend_arg(backend_name, 'TRITON_TENSORFLOW_LIB_PATHS',
@@ -739,14 +739,7 @@ def tensorflow_cmake_args(ver, images, library_paths):
         # If a specific TF image is specified use it, otherwise pull from NGC.
         # TODO: Figure out where to get TF1
         if target_platform() == 'jetpack':
-            if ver == 1:
-                image = 'nvcr.io/nvidia/l4t-ml:r35.1.0-py3'
-            elif ver == 2:
-                image = images['base']
-            else:
-                fail(
-                    'Jetpack only supports TensorFlow 1 and 2, found {}'.format(
-                        ver))
+            image = images['base']
         elif backend_name in images:
             image = images[backend_name]
         else:
@@ -1618,9 +1611,7 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
     elif target_platform() == 'windows':
         base_image = 'mcr.microsoft.com/dotnet/framework/sdk:4.8'
     elif target_platform() == 'jetpack':
-        # TODO: Make container version set by flag
-        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
-        images['base'] = base_image
+        base_image = images['base']
     elif FLAGS.enable_gpu:
         base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
             FLAGS.upstream_container_version)
@@ -2563,6 +2554,9 @@ if __name__ == '__main__':
 
     if target_platform() == 'jetpack' and FLAGS.image:
         fail('cannot set images for jetpack build, uses base image')
+        # TODO: Make container version set by flag
+        base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
+        images['base'] = base_image
 
     for img in FLAGS.image:
         parts = img.split(',')
