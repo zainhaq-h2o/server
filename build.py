@@ -609,45 +609,25 @@ def backend_cmake_args(images, components, be, install_dir, library_paths):
 
 def pytorch_cmake_args(images):
 
-    # If platform is jetpack do not use docker based build
-    if target_platform() == 'jetpack':
-        if 'pytorch' not in library_paths:
-            raise Exception(
-                "Must specify library path for pytorch using --library-paths=pytorch:<path_to_pytorch>"
-            )
-        pt_lib_path = library_paths['pytorch'] + "/lib"
-        pt_include_paths = ""
-        for suffix in [
-                'include/torch', 'include/torch/torch/csrc/api/include',
-                'include/torchvision'
-        ]:
-            pt_include_paths += library_paths['pytorch'] + '/' + suffix + ';'
-        cargs = [
-            cmake_backend_arg('pytorch', 'TRITON_PYTORCH_INCLUDE_PATHS', None,
-                              pt_include_paths),
-            cmake_backend_arg('pytorch', 'TRITON_PYTORCH_LIB_PATHS', None,
-                              pt_lib_path),
-        ]
+    if "pytorch" in images:
+        image = images["pytorch"]
+    elif target_platform() == 'jetpack':
+        image = images['base']
     else:
-        if "pytorch" in images:
-            image = images["pytorch"]
-        elif target_platform() == 'jetpack':
-            image = images['base']
-        else:
-            image = 'nvcr.io/nvidia/pytorch:{}-py3'.format(
-                FLAGS.upstream_container_version)
-        cargs = [
-            cmake_backend_arg('pytorch', 'TRITON_PYTORCH_DOCKER_IMAGE', None,
-                              image),
-        ]
+        image = 'nvcr.io/nvidia/pytorch:{}-py3'.format(
+            FLAGS.upstream_container_version)
+    cargs = [
+        cmake_backend_arg('pytorch', 'TRITON_PYTORCH_DOCKER_IMAGE', None,
+                            image),
+    ]
 
-        if FLAGS.enable_gpu:
-            cargs.append(
-                cmake_backend_enable('pytorch',
-                                     'TRITON_PYTORCH_ENABLE_TORCHTRT', True))
+    if FLAGS.enable_gpu:
         cargs.append(
-            cmake_backend_enable('pytorch', 'TRITON_ENABLE_NVTX',
-                                 FLAGS.enable_nvtx))
+            cmake_backend_enable('pytorch',
+                                    'TRITON_PYTORCH_ENABLE_TORCHTRT', True))
+    cargs.append(
+        cmake_backend_enable('pytorch', 'TRITON_ENABLE_NVTX',
+                                FLAGS.enable_nvtx))
     return cargs
 
 
@@ -663,22 +643,11 @@ def onnxruntime_cmake_args(images, library_paths):
             cmake_backend_enable('onnxruntime',
                                  'TRITON_ENABLE_ONNXRUNTIME_TENSORRT', True))
 
-    # If platform is jetpack do not use docker based build
-    if target_platform() == 'jetpack':
-        if 'onnxruntime' not in library_paths:
-            raise Exception(
-                "Must specify library path for onnxruntime using --library-paths=onnxruntime:<path_to_onnxruntime>"
-            )
-        ort_lib_path = library_paths['onnxruntime'] + "/lib"
-        ort_include_path = library_paths['onnxruntime'] + "/include"
-        cargs += [
-            cmake_backend_arg('onnxruntime', 'TRITON_ONNXRUNTIME_INCLUDE_PATHS',
-                              None, ort_include_path),
-            cmake_backend_arg('onnxruntime', 'TRITON_ONNXRUNTIME_LIB_PATHS',
-                              None, ort_lib_path),
-            cmake_backend_enable('onnxruntime',
-                                 'TRITON_ENABLE_ONNXRUNTIME_OPENVINO', False)
-        ]
+    if target_platform() == 'windows':
+        if 'ort-base' in images:
+            cargs.append(
+                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
+                                    None, images['ort-base']))
     else:
         if target_platform() == 'windows':
             if 'base' in images:
@@ -700,17 +669,17 @@ def onnxruntime_cmake_args(images, library_paths):
                                       'TRITON_BUILD_CONTAINER_VERSION', None,
                                       TRITON_VERSION_MAP[FLAGS.version][1]))
 
-            if ((target_machine() != 'aarch64') and
-                (TRITON_VERSION_MAP[FLAGS.version][3] is not None)):
-                cargs.append(
-                    cmake_backend_enable('onnxruntime',
-                                         'TRITON_ENABLE_ONNXRUNTIME_OPENVINO',
-                                         True))
-                cargs.append(
-                    cmake_backend_arg(
-                        'onnxruntime',
-                        'TRITON_BUILD_ONNXRUNTIME_OPENVINO_VERSION', None,
-                        TRITON_VERSION_MAP[FLAGS.version][3]))
+        if ((target_machine() != 'aarch64') and
+            (TRITON_VERSION_MAP[FLAGS.version][3] is not None)):
+            cargs.append(
+                cmake_backend_enable('onnxruntime',
+                                        'TRITON_ENABLE_ONNXRUNTIME_OPENVINO',
+                                        True))
+            cargs.append(
+                cmake_backend_arg(
+                    'onnxruntime',
+                    'TRITON_BUILD_ONNXRUNTIME_OPENVINO_VERSION', None,
+                    TRITON_VERSION_MAP[FLAGS.version][3]))
 
     return cargs
 
@@ -753,9 +722,10 @@ def tensorrt_cmake_args():
 def tensorflow_cmake_args(ver, images, library_paths):
     backend_name = "tensorflow{}".format(ver)
 
-    # If platform is jetpack do not use docker images
+    # If platform is jetpack do not use docker images for TF1
+    # TODO: Switch to Docker for TF1 but figure out how to add library
     extra_args = []
-    if target_platform() == 'jetpack':
+    if target_platform() == 'jetpack' and 'ver' == 1:
         if backend_name in library_paths:
             extra_args = [
                 cmake_backend_arg(backend_name, 'TRITON_TENSORFLOW_LIB_PATHS',
