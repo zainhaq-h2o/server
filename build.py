@@ -618,16 +618,16 @@ def pytorch_cmake_args(images):
             FLAGS.upstream_container_version)
     cargs = [
         cmake_backend_arg('pytorch', 'TRITON_PYTORCH_DOCKER_IMAGE', None,
-                            image),
+                          image),
     ]
 
     if FLAGS.enable_gpu:
         cargs.append(
-            cmake_backend_enable('pytorch',
-                                    'TRITON_PYTORCH_ENABLE_TORCHTRT', True))
+            cmake_backend_enable('pytorch', 'TRITON_PYTORCH_ENABLE_TORCHTRT',
+                                 True))
     cargs.append(
         cmake_backend_enable('pytorch', 'TRITON_ENABLE_NVTX',
-                                FLAGS.enable_nvtx))
+                             FLAGS.enable_nvtx))
     return cargs
 
 
@@ -646,8 +646,8 @@ def onnxruntime_cmake_args(images, library_paths):
     if target_platform() == 'windows':
         if 'ort-base' in images:
             cargs.append(
-                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
-                                    None, images['ort-base']))
+                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
+                                  images['ort-base']))
     else:
         if target_platform() == 'windows':
             if 'base' in images:
@@ -673,13 +673,12 @@ def onnxruntime_cmake_args(images, library_paths):
             (TRITON_VERSION_MAP[FLAGS.version][3] is not None)):
             cargs.append(
                 cmake_backend_enable('onnxruntime',
-                                        'TRITON_ENABLE_ONNXRUNTIME_OPENVINO',
-                                        True))
+                                     'TRITON_ENABLE_ONNXRUNTIME_OPENVINO',
+                                     True))
             cargs.append(
-                cmake_backend_arg(
-                    'onnxruntime',
-                    'TRITON_BUILD_ONNXRUNTIME_OPENVINO_VERSION', None,
-                    TRITON_VERSION_MAP[FLAGS.version][3]))
+                cmake_backend_arg('onnxruntime',
+                                  'TRITON_BUILD_ONNXRUNTIME_OPENVINO_VERSION',
+                                  None, TRITON_VERSION_MAP[FLAGS.version][3]))
 
     return cargs
 
@@ -2552,14 +2551,13 @@ if __name__ == '__main__':
     # Initialize map of docker images.
     images = {}
 
-    if target_platform() == 'jetpack'
+    if target_platform() == 'jetpack':
         if FLAGS.image:
             fail('cannot set images for jetpack build, uses base image')
         else:
             # TODO: Make container version set by flag
             base_image = 'nvcr.io/nvidia/l4t-ml:r35.2.1-py3'
             images['base'] = base_image
-        
 
     for img in FLAGS.image:
         parts = img.split(',')
