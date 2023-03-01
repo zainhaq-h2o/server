@@ -637,7 +637,7 @@ def onnxruntime_cmake_args(images, library_paths):
                           None, TRITON_VERSION_MAP[FLAGS.version][2])
     ]
 
-    # TODO: Jetson has no ORT container, so need to set mandatory variables manually
+    # TODO: Jetson has no container equivalent to py3-min, so need to set mandatory variables manually.
 
     # TRITON_ENABLE_GPU is already set for all backends in backend_cmake_args()
     if FLAGS.enable_gpu:
