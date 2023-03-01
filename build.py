@@ -637,6 +637,8 @@ def onnxruntime_cmake_args(images, library_paths):
                           None, TRITON_VERSION_MAP[FLAGS.version][2])
     ]
 
+    # TODO: Jetson has no ORT container, so need to set mandatory variables manually
+
     # TRITON_ENABLE_GPU is already set for all backends in backend_cmake_args()
     if FLAGS.enable_gpu:
         cargs.append(
@@ -739,15 +741,15 @@ def tensorflow_cmake_args(ver, images, library_paths):
         # TODO: Figure out where to get TF1
         if target_platform() == 'jetpack':
             image = "nvcr.io/nvidia/l4t-tensorflow:r35.2.1-tf2.11-py3"
+            extra_args.append(backend_name, 'TRITON_JETSON_BUILD', 'BOOL', 'ON')
         elif backend_name in images:
             image = images[backend_name]
         else:
             image = 'nvcr.io/nvidia/tensorflow:{}-tf{}-py3'.format(
                 FLAGS.upstream_container_version, ver)
-        extra_args = [
+        extra_args.append(
             cmake_backend_arg(backend_name, 'TRITON_TENSORFLOW_DOCKER_IMAGE',
-                              None, image)
-        ]
+                              None, image))
     return [
         cmake_backend_arg(backend_name, 'TRITON_TENSORFLOW_VERSION', None, ver)
     ] + extra_args
