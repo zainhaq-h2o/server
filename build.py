@@ -612,7 +612,7 @@ def pytorch_cmake_args(images):
     if "pytorch" in images:
         image = images["pytorch"]
     elif target_platform() == 'jetpack':
-        image = images['base']
+        image = "nvcr.io/nvidia/l4t-pytorch:r35.2.1-pth2.0-py3"
     else:
         image = 'nvcr.io/nvidia/pytorch:{}-py3'.format(
             FLAGS.upstream_container_version)
@@ -738,7 +738,7 @@ def tensorflow_cmake_args(ver, images, library_paths):
         # If a specific TF image is specified use it, otherwise pull from NGC.
         # TODO: Figure out where to get TF1
         if target_platform() == 'jetpack':
-            image = images['base']
+            image = "nvcr.io/nvidia/l4t-tensorflow:r35.2.1-tf2.11-py3"
         elif backend_name in images:
             image = images[backend_name]
         else:
