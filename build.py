@@ -1641,13 +1641,15 @@ def create_build_dockerfiles(container_build_dir, images, backends, repoagents,
     # are not CPU-only.
     if not FLAGS.enable_gpu and (
         ('pytorch' in backends) or ('tensorflow1' in backends) or
-        ('tensorflow2' in backends)) and (target_platform() != 'windows') and (
-            target_platform() != 'jetpack'):
+        ('tensorflow2' in backends)) and (target_platform() != 'windows'):
         if 'gpu-base' in images:
             gpu_base_image = images['gpu-base']
         else:
-            gpu_base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
-                FLAGS.upstream_container_version)
+            if target_platform() == 'jetpack':
+                gpu_base_image = base_image
+            else:
+                gpu_base_image = 'nvcr.io/nvidia/tritonserver:{}-py3-min'.format(
+                    FLAGS.upstream_container_version)
         dockerfileargmap['GPU_BASE_IMAGE'] = gpu_base_image
 
     create_dockerfile_buildbase(FLAGS.build_dir, 'Dockerfile.buildbase',
