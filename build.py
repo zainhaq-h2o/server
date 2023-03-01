@@ -741,7 +741,9 @@ def tensorflow_cmake_args(ver, images, library_paths):
         # TODO: Figure out where to get TF1
         if target_platform() == 'jetpack':
             image = "nvcr.io/nvidia/l4t-tensorflow:r35.2.1-tf2.11-py3"
-            extra_args.append(backend_name, 'TRITON_JETSON_BUILD', 'BOOL', 'ON')
+            extra_args.append(
+                cmake_backend_arg(backend_name, 'TRITON_JETSON_BUILD', 'BOOL',
+                                  'ON'))
         elif backend_name in images:
             image = images[backend_name]
         else:
