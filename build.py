@@ -661,7 +661,10 @@ def onnxruntime_cmake_args(images, library_paths):
                                   images['base']))
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CUDNN_HOME',
-                                  None, '/usr/include/cudnn.h'))
+                                  None, '/usr/lib/x86_64-linux-gnu/'))
+            cargs.append(
+                cmake_backend_arg('onnxruntime', 'CMAKE_CUDA_COMPILER', None,
+                                  '$(which nvcc)'))
         else:
             if 'base' in images:
                 cargs.append(
