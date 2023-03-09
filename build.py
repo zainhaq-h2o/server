@@ -651,11 +651,17 @@ def onnxruntime_cmake_args(images, library_paths):
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
                                   images['ort-base']))
     else:
-        if target_platform() == 'windows':
-            if 'base' in images:
-                cargs.append(
-                    cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
-                                      None, images['base']))
+        if 'ort-base' in images:
+            cargs.append(
+                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
+                                  images['ort-base']))
+        elif target_platform() == 'jetpack':
+            cargs.append(
+                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
+                                  images['base']))
+            cargs.append(
+                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CUDNN_HOME',
+                                  None, '/usr/include/cudnn.h'))
         else:
             if 'base' in images:
                 cargs.append(
