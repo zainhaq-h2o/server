@@ -655,17 +655,14 @@ def onnxruntime_cmake_args(images, library_paths):
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
                                   images['base']))
-        elif target_platform() == 'jetpack':
-            cargs.append(
-                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
-                                  images['base']))
-            cargs.append(
-                cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CUDNN_HOME',
-                                  None, '/usr/lib/aarch64-linux-gnu/'))
-            # Jetson build needs the CUDA compiler to be found
-            cargs.append(
-                cmake_backend_arg('onnxruntime', 'CMAKE_CUDA_COMPILER', None,
-                                  '$(which nvcc)'))
+            if target_platform() == 'jetpack':
+                cargs.append(
+                    cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CUDNN_HOME',
+                                      None, '/usr/lib/aarch64-linux-gnu/'))
+                # Jetson build needs the CUDA compiler to be found
+                cargs.append(
+                    cmake_backend_arg('onnxruntime', 'CMAKE_CUDA_COMPILER',
+                                      None, '$(which nvcc)'))
         else:
             cargs.append(
                 cmake_backend_arg('onnxruntime',
