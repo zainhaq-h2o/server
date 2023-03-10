@@ -651,7 +651,7 @@ def onnxruntime_cmake_args(images, library_paths):
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
                                   images['ort-base']))
     else:
-        if 'ort-base' in images:
+        if 'base' in images:
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
                                   images['ort-base']))
@@ -667,19 +667,10 @@ def onnxruntime_cmake_args(images, library_paths):
                 cmake_backend_arg('onnxruntime', 'CMAKE_CUDA_COMPILER', None,
                                   '$(which nvcc)'))
         else:
-            if 'base' in images:
-                cargs.append(
-                    cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
-                                      None, images['ort-base']))
-            elif target_platform() == 'jetpack':
-                cargs.append(
-                    cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER',
-                                      None, images['base']))
-            else:
-                cargs.append(
-                    cmake_backend_arg('onnxruntime',
-                                      'TRITON_BUILD_CONTAINER_VERSION', None,
-                                      TRITON_VERSION_MAP[FLAGS.version][1]))
+            cargs.append(
+                cmake_backend_arg('onnxruntime',
+                                  'TRITON_BUILD_CONTAINER_VERSION', None,
+                                  TRITON_VERSION_MAP[FLAGS.version][1]))
 
         if ((target_machine() != 'aarch64') and
             (TRITON_VERSION_MAP[FLAGS.version][3] is not None)):
