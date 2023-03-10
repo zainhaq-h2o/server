@@ -646,15 +646,15 @@ def onnxruntime_cmake_args(images, library_paths):
                                  'TRITON_ENABLE_ONNXRUNTIME_TENSORRT', True))
 
     if target_platform() == 'windows':
-        if 'ort-base' in images:
+        if 'base' in images:
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
-                                  images['ort-base']))
+                                  images['base']))
     else:
         if 'base' in images:
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
-                                  images['ort-base']))
+                                  images['base']))
         elif target_platform() == 'jetpack':
             cargs.append(
                 cmake_backend_arg('onnxruntime', 'TRITON_BUILD_CONTAINER', None,
