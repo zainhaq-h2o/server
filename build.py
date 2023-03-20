@@ -646,7 +646,7 @@ def pytorch_cmake_args(images):
         cargs.append(
             cmake_backend_enable('pytorch', 'TRITON_ENABLE_NVTX',
                                  FLAGS.enable_nvtx))
-    return
+    return cargs
 
 
 def onnxruntime_cmake_args(images, library_paths):
